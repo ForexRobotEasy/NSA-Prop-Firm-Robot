@@ -1,0 +1,112 @@
+
+//+------------------------------------------------------------------+
+//|                                            NSA Prop Firm Robot  |
+//|                                Developer: Forex Robot Easy Team  |
+//|                                Developer's Site: forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Define input parameters
+input double LotSize = 0.01; // Trading lot size
+input int StopLoss = 100; // Stop loss in pips
+input int TakeProfit = 200; // Take profit in pips
+input bool UseNewsFilter = true; // Flag to enable news filter
+
+// Define global variables
+int g_magicNumber = 123456; // Magic number for trade identification
+
+//+------------------------------------------------------------------+
+//| Expert advisor initialization function                            |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Set trading hours
+    SetTradeTime(0, 0, 0, 12, 0, 0, 0, 0);
+
+    // Initialize news filter
+    if (UseNewsFilter)
+        InitializeNewsFilter();
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert advisor start function                                     |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Check if it's the right trading hour
+    if (!IsTradeTime())
+        return;
+
+    // Check if high-impact news event is occurring
+    if (UseNewsFilter && IsHighImpactNews())
+        return;
+
+    // Check if the current symbol is AUDCAD or NZDUSD
+    if (Symbol() != 'AUDCAD' && Symbol() != 'NZDUSD')
+        return;
+
+    // Check if Gold and US30 are available for trading
+    if (!SymbolIsAvailable('XAUUSD') || !SymbolIsAvailable('US30'))
+        return;
+
+    // Place buy order for Gold
+    double goldPrice = SymbolInfoDouble('XAUUSD', SYMBOL_ASK);
+    double goldStopLoss = NormalizeDouble(goldPrice - StopLoss * Point(), Digits);
+    double goldTakeProfit = NormalizeDouble(goldPrice + TakeProfit * Point(), Digits);
+    int goldTicket = OrderSend('XAUUSD', OP_BUY, LotSize, goldPrice, 0, goldStopLoss, goldTakeProfit, 'NSA Prop Firm Robot', g_magicNumber, 0, Green);
+
+    // Place sell order for US30
+    double us30Price = SymbolInfoDouble('US30', SYMBOL_BID);
+    double us30StopLoss = NormalizeDouble(us30Price + StopLoss * Point(), Digits);
+    double us30TakeProfit = NormalizeDouble(us30Price - TakeProfit * Point(), Digits);
+    int us30Ticket = OrderSend('US30', OP_SELL, LotSize, us30Price, 0, us30StopLoss, us30TakeProfit, 'NSA Prop Firm Robot', g_magicNumber, 0, Red);
+
+    // Check if orders are successfully placed
+    if (goldTicket > 0 && us30Ticket > 0)
+    {
+        Print('Orders placed successfully');
+    }
+    else
+    {
+        Print('Failed to place orders');
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Check if it's the right trading hour                              |
+//+------------------------------------------------------------------+
+bool IsTradeTime()
+{
+    datetime currentTime = TimeLocal();
+    datetime startTradingTime = StrToTime('00:00');
+    datetime endTradingTime = StrToTime('12:00');
+    
+    return (currentTime >= startTradingTime && currentTime <= endTradingTime);
+}
+
+//+------------------------------------------------------------------+
+//| Check if high-impact news event is occurring                      |
+//+------------------------------------------------------------------+
+bool IsHighImpactNews()
+{
+    // Add code to check for high-impact news events
+    // and return true if any high-impact news event is occurring
+    return false;
+}
+
+//+------------------------------------------------------------------+
+//| Initialize news filter                                            |
+//+------------------------------------------------------------------+
+void InitializeNewsFilter()
+{
+    // Add code to initialize the news filter
+}
+
+//+------------------------------------------------------------------+
+//| Check if a symbol is available for trading                        |
+//+------------------------------------------------------------------+
+bool SymbolIsAvailable(string symbol)
+{
+    return MarketInfo(symbol, MODE_TRADEALLOWED);
+}
